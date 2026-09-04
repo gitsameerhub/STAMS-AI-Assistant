@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#ffffff" />
+<title>STAMS AI Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+<style>
+  :root{
+    --bg: #ffffff;
+    --panel: #fafbfc;
+    --panel-2: #f4f6f8;
+    --border: #e3e7ec;
+    --ink: #16202b;
+    --ink-soft: #5b6672;
+    --ink-faint: #8b95a1;
+    --accent: #1c4e80;
+    --accent-soft: #eaf1f8;
+    --accent-hover: #163f68;
+    --live: #2e8b57;
+    --radius: 6px;
+    --vh: 1vh;
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{ height:100%; overscroll-behavior: none; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-text-size-adjust: 100%;
+  }
+  .mono{ font-family: 'IBM Plex Mono', 'SFMono-Regular', Menlo, monospace; }
+
+  .app{
+    display:flex;
+    flex-direction:column;
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
+    max-width: 1180px;
+    margin: 0 auto;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 12px 16px;
+    padding-top: max(12px, env(safe-area-inset-top));
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink:0;
+    gap: 10px;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .brand-mark{
+    width:32px; height:32px;
+    border:1.5px solid var(--accent);
+    border-radius: 4px;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--accent);
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:11.5px;
+    letter-spacing: 0.5px;
+    flex-shrink:0;
+  }
+  .brand-text{ min-width:0; }
+  .brand-text h1{
+    margin:0;
+    font-size: clamp(14px, 3.6vw, 16.5px);
+    font-weight:600;
+    letter-spacing: 0.1px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .brand-text p{
+    margin: 1px 0 0;
+    font-size: 12px;
+    color: var(--ink-soft);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .status{
+    display:flex; align-items:center; gap:7px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    flex-shrink:0;
+  }
+  .status .dot{
+    width:7px; height:7px; border-radius:50%;
+    background: var(--live);
+    box-shadow: 0 0 0 3px rgba(46,139,87,0.15);
+  }
+  .status-label{ display:inline; }
+  .clear-btn{
+    background:none; border:1px solid var(--border);
+    color: var(--ink-soft);
+    font-size:12px;
+    padding: 7px 11px;
+    border-radius: var(--radius);
+    cursor:pointer;
+    font-family: inherit;
+    flex-shrink:0;
+    min-height: 34px;
+  }
+  .clear-btn:hover{ border-color: var(--ink-faint); color: var(--ink); }
+  .header-right{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+
+  /* ---------- Body layout ---------- */
+  .body{
+    flex:1;
+    display:flex;
+    min-height:0;
+  }
+
+  /* ---------- Sidebar (desktop) ---------- */
+  .sidebar{
+    width: 216px;
+    flex-shrink:0;
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+    padding: 18px 12px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sidebar h2{
+    font-size: 11px;
+    font-weight:600;
+    color: var(--ink-faint);
+    margin: 0 0 10px 8px;
+    letter-spacing: 0.2px;
+  }
+  .topic-btn{
+    display:block;
+    width:100%;
+    text-align:left;
+    background:none;
+    border:none;
+    border-left: 2px solid transparent;
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 13.2px;
+    padding: 9px 10px;
+    border-radius: 0 4px 4px 0;
+    cursor:pointer;
+    margin-bottom: 1px;
+  }
+  .topic-btn:hover, .topic-btn:active{
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-left-color: var(--accent);
+  }
+  .sidebar-note{
+    margin-top: 20px;
+    padding: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 11.8px;
+    color: var(--ink-soft);
+    line-height:1.6;
+  }
+  .sidebar-note b{ color: var(--ink); }
+
+  /* ---------- Mobile topic strip ---------- */
+  .topic-strip{
+    display:none;
+    gap:7px;
+    overflow-x:auto;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex-shrink:0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .topic-strip::-webkit-scrollbar{ display:none; }
+  .topic-chip{
+    white-space:nowrap;
+    flex-shrink:0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 12.5px;
+    padding: 7px 13px;
+    border-radius: 999px;
+    cursor:pointer;
+  }
+  .topic-chip:active{ background: var(--accent-soft); color: var(--accent); border-color:#d7e5f2; }
+
+  /* ---------- Chat area ---------- */
+  .chat-wrap{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+    min-height:0;
+  }
+  .messages{
+    flex:1;
+    overflow-y:auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 20px 22px 10px;
+    display:flex;
+    flex-direction:column;
+    gap: 16px;
+  }
+  .msg-row{ display:flex; }
+  .msg-row.user{ justify-content:flex-end; }
+  .msg-row.assistant{ justify-content:flex-start; }
+
+  .bubble{
+    max-width: 78%;
+    padding: 11px 14px;
+    border-radius: var(--radius);
+    font-size: 14.2px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  .msg-row.user .bubble{
+    background: var(--accent-soft);
+    color: var(--ink);
+    border: 1px solid #d7e5f2;
+  }
+  .msg-row.assistant .bubble{
+    background: var(--bg);
+    border: 1px solid var(--border);
+    width: 100%;
+    max-width: 100%;
+  }
+  .assistant-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--accent);
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+    display:block;
+  }
+
+  .bubble p{ margin: 0 0 10px; }
+  .bubble p:last-child{ margin-bottom:0; }
+  .bubble h1,.bubble h2,.bubble h3{
+    font-size: 15px;
+    margin: 14px 0 6px;
+    font-weight:600;
+    color: var(--ink);
+  }
+  .bubble h1:first-child, .bubble h2:first-child, .bubble h3:first-child{ margin-top:0; }
+  .bubble ul,.bubble ol{ margin: 6px 0 10px; padding-left: 20px; }
+  .bubble li{ margin-bottom:4px; }
+  .bubble code{
+    font-family:'IBM Plex Mono', monospace;
+    background: var(--panel-2);
+    padding: 1px 5px;
+    border-radius:3px;
+    font-size: 12.4px;
+    word-break: break-word;
+  }
+  .bubble pre{
+    background: var(--panel-2);
+    border:1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+  .bubble pre code{ background:none; padding:0; }
+  .bubble a{ color: var(--accent); }
+  .bubble table{ display:block; overflow-x:auto; border-collapse:collapse; max-width:100%; }
+  .bubble th, .bubble td{ border:1px solid var(--border); padding:6px 9px; font-size:13px; }
+  .mermaid{
+    background: var(--bg);
+    border:1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px;
+    margin: 8px 0;
+    text-align:center;
+    overflow-x:auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mermaid svg{ max-width:100%; height:auto; }
+  .bubble strong{ color: var(--ink); }
+
+  .typing{
+    display:flex; gap:4px; padding: 4px 0;
+  }
+  .typing span{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--ink-faint);
+    animation: blink 1.2s infinite ease-in-out;
+  }
+  .typing span:nth-child(2){ animation-delay: 0.2s; }
+  .typing span:nth-child(3){ animation-delay: 0.4s; }
+  @keyframes blink{ 0%,80%,100%{ opacity:0.25; } 40%{ opacity:1; } }
+
+  /* ---------- Input ---------- */
+  .input-bar{
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    background: var(--bg);
+    flex-shrink:0;
+  }
+  .input-row{
+    display:flex;
+    align-items:flex-end;
+    gap:8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 6px 6px 13px;
+  }
+  .input-row:focus-within{ border-color: var(--accent); }
+  textarea{
+    flex:1;
+    border:none;
+    background:none;
+    resize:none;
+    outline:none;
+    font-family: inherit;
+    font-size: 16px; /* prevents iOS auto-zoom on focus */
+    color: var(--ink);
+    padding: 7px 0;
+    max-height: 120px;
+    line-height:1.5;
+  }
+  textarea::placeholder{ color: var(--ink-faint); }
+  .send-btn{
+    background: var(--accent);
+    color:#fff;
+    border:none;
+    border-radius: 5px;
+    padding: 0 16px;
+    height: 40px;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight:500;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .send-btn:hover{ background: var(--accent-hover); }
+  .send-btn:disabled{ background: var(--ink-faint); cursor:not-allowed; }
+  .hint{
+    text-align:center;
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-top: 7px;
+  }
+
+  /* ---------- Mobile breakpoint ---------- */
+  @media (max-width: 760px){
+    .sidebar{ display:none; }
+    .topic-strip{ display:flex; }
+    .status-label{ display:none; }
+    .brand-text p{ display:none; }
+    header{ padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top)); }
+    .messages{ padding: 16px 14px 8px; gap:14px; }
+    .bubble{ max-width: 90%; font-size: 14px; }
+    .input-bar{ padding: 8px 10px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+    .hint{ display:none; }
+  }
+
+  @media (max-width: 400px){
+    .clear-btn span{ display:none; }
+    .clear-btn{ padding: 7px 9px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">ST</div>
+      <div class="brand-text">
+        <h1>STAMS AI Assistant</h1>
+        <p>SCADA / EMS knowledge companion</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status"><span class="dot"></span><span class="status-label">Online</span></div>
+      <button class="clear-btn" id="clearBtn"><span>Clear chat</span></button>
+    </div>
+  </header>
+
+  <!-- Mobile horizontal topic strip -->
+  <div class="topic-strip" id="topicStrip"></div>
+
+  <div class="body">
+
+    <aside class="sidebar">
+      <h2>Ask about</h2>
+      <div id="sidebarTopics"></div>
+      <div class="sidebar-note">
+        <b>How this works</b><br>
+        Answers are grounded in the STAMS training material. For anything outside it, I search the web too — just ask.
+      </div>
+    </aside>
+
+    <div class="chat-wrap">
+      <div class="messages" id="messages"></div>
+
+      <div class="input-bar">
+        <div class="input-row">
+          <textarea id="input" rows="1" placeholder="Ask me anything about the STAMS project..."></textarea>
+          <button class="send-btn" id="sendBtn">Send</button>
+        </div>
+        <div class="hint">Enter to send · Shift+Enter for a new line</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ---- Fix mobile viewport height (100vh) issues on iOS/Android ----
+function setVH(){
+  document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+}
+setVH();
+window.addEventListener('resize', setVH);
+window.addEventListener('orientationchange', setVH);
+
+mermaid.initialize({ startOnLoad:false, theme:'neutral', securityLevel:'loose' });
+
+const SYSTEM_PROMPT = `You are the STAMS AI Assistant — a patient, friendly teacher who explains the STAMS SCADA/EMS project to someone learning it from scratch. STAMS is Odisha's transmission SCADA/EMS system, built on GE Vernova's e-terraplatform technology stack.
+
+YOUR TEACHING STYLE
+- Always explain things in the SIMPLEST possible way first — plain words, short sentences, real-world analogies — before adding technical terms.
+- Define every acronym the first time you use it.
+- Prefer short paragraphs and bullet points over dense blocks of text.
+- When a concept has structure, flow, or hierarchy (architecture, data flow, control sequence, database hierarchy), draw a small diagram using a fenced \`\`\`mermaid code block (flowchart, sequence diagram, or graph). Keep diagrams small and readable — a handful of nodes, not a wall of boxes. Only add a diagram when it genuinely helps.
+- Never dump a huge wall of jargon. Build up from "what problem does this solve" to "how it actually works".
+- If a question is outside what you know from the STAMS material, say so plainly, then use your web search tool to find a good general answer, and be clear about which parts are STAMS-specific vs. general knowledge.
+
+GROUNDING KNOWLEDGE — STAMS PROJECT (from the uploaded training material)
+
+CONTROL CENTRES
+STAMS has these control centres:
+- Main STAMC + Central Zone RTAMC (co-located), Bhubaneswar — covers 67 substations
+- Backup STAMC cum West Zone RTAMC, Lapanga — covers 49 substations
+- North Zone RTAMC, Balasore — covers 32 substations
+- South Zone RTAMC, Narendrapur — covers 39 substations
+The Backup STAMC can take over if the Main STAMC fails — that's why it's called "backup."
+
+CORE SOFTWARE FOUNDATION — e-terrahabitat
+Think of e-terrahabitat as the "operating system" for all STAMS applications. It's a layered environment:
+1. OS Layer (Windows / Linux)
+2. e-terrahabitat layer — the real-time database engine, high-availability services, and developer tools
+3. Real-time application layer — the actual power-system apps (SCADA, Network, Generation, DTS)
+Layering means the applications don't care which OS they run on — it protects the investment when hardware/OS changes.
+
+Key e-terrahabitat concepts:
+- Application = a named bundle of databases + tasks + displays + savecases (e.g. SCADA, RTNET, RTGEN)
+- Database = structured data storage; STAMS uses a HIERARCHICAL model (parent/child records), e.g. SUBSTN > DEVTYP > DEVICE > POINT/ANALOG
+- Clone = one instance of an application's data for a given "family" (e.g. SCADA.EMS clone = live production data; SCADA.DTS clone = training simulator data)
+- Clone context = Application + Family + Group number — tells the system exactly which data to use
+- PROCMAN (Process Manager) — starts, stops, and manages every task
+- MRS (Memory Replication Services) — keeps the backup machine's memory in sync with the primary, for high availability
+- PERMIT — the login/permissions subsystem; controls what each user can see and do
+- HABConnect / Sampler / NETIO — supporting real-time communication services
+
+THE e-terraplatform APPLICATION SUITE (sits on top of e-terrahabitat)
+- SCADA (e-terrascada) — monitors and controls the grid in real time
+- NETWORK (e-terratransmission) — network analysis (state estimation, power flow, contingency analysis)
+- GENERATION (e-terrageneration) — controls and dispatches power generation (AGC)
+- DTS (e-terrasimulator) — Dispatcher Training Simulator, a safe practice environment that mimics the real system
+
+SCADA SUBSYSTEM — what it actually does
+SCADA = Supervisory Control And Data Acquisition. In plain words: it watches the grid (data acquisition) and lets operators control it (supervisory control) from a control room, using a communication link to substations.
+Its jobs: data acquisition, supervisory control, data processing (analog/status), alarm & event processing, tagging, notes, real-time calculations, historical data recording (HDR), user interface & permissions, system monitoring.
+
+Key SCADA host processes (all run on the SCADA host machine, reading/writing the SCADAMOM database):
+- SCANNER — main data processor: reads incoming data, checks alarms/limits, calculates values, writes history
+- CONTROL — processes supervisory controls (breaker trip/close etc.) and manages the control sequence to the field
+- SCSRV — the single point of contact for other programs that want to read/write SCADA data
+- USERCALC — lets operators build custom calculations from live data
+- SCADATOP — figures out what's electrically connected to what (topology/energization)
+- TAGGING — marks devices to block or restrict controls
+- LOADSHED — automatically sheds load in emergencies
+- HDRCOPY / RECON — back up and "replay" historical data
+
+FRONT END PROCESSOR (FEP)
+The FEP is the translator between the SCADA host and the substations (RTUs). It:
+- Talks to RTUs over protocols like IEC 104, Secure IEC 104, IEC 101
+- Converts raw RTU data into a standard format
+- Sends data up to SCADA using GE Vernova's own protocol (ISD)
+- Handles select-before-operate control sequencing
+- Runs in redundant pairs for reliability
+
+DATA MODEL — SUBSTATION HIERARCHY (SCADAMOM database)
+SUBSTN (substation) > DEVTYP (device type, e.g. breaker, transformer) > DEVICE (a specific device) > 
+  POINT (status, e.g. open/closed) / ANALOG (a measurement, e.g. MW, kV) / CTRL (a control) / COUNT (pulse accumulator, e.g. energy meter)
+Naming example: SUBSTN=REDMOND, DEVTYP=MOTR, DEVICE=1, POINT=STTS
+
+THREE TYPES OF MEASUREMENTS
+- Analog values — continuously changing numbers (voltage, MW, temperature)
+- Status values — on/off, open/closed type states (two, three, or four-state points)
+- Pulse accumulations — totals delivered over time (like a utility meter, e.g. MWh)
+
+DATA QUALITY FLAGS — three families
+- Source flags — where did the data come from? (normally remote, backup site, calculated, manual entry, external source)
+- Reliability flags — can we trust it? (never received / UNINIT, stale / OLD, bad hardware reading / BAD, out of range / OVER, suspicious trend / ABNORMAL, taken out of service / NIS, replaced / MANREP, etc.)
+- Composite flags — a simple summary for the operator: GARBAGE (meaningless), SUSPECT (probably unreliable), REPLACED, or GOOD
+
+ANALOG LIMITS
+- Reasonability limits — sanity check on raw data (done by the FEP and host)
+- Operational limits (LIMIT records) — define the normal operating range; violations create alarms
+- A deadband stops an analog from constantly flickering between alarm and normal near the limit edge
+- Alternate limits (ALTLIM) can swap in for different seasons/times, and rate-of-change limits (RATLIM) catch fast-changing values
+
+SUPERVISORY CONTROL
+- Select-before-operate (for breakers) — a safe two-step process: SELECT the device, then EXECUTE the command, with checks in between
+- Direct-operate (for things like tap changers) — a single step
+- Interlocks — a control is only allowed if another point is in the right state (a safety condition)
+- Tagging — placing a "do not operate" or "operate with caution" flag on a device
+- Loadshed — automatically shedding load during emergencies, prioritized and reversible
+
+ALARM SYSTEM
+- An Event happens when something notable changes in the database
+- An Exception is a database object currently in an abnormal and/or unacknowledged state
+- An Alarm is an unsolicited notice to the operator that a new exception occurred
+- Every alarm has a Category (type, e.g. "breaker trip"), a Location (usually the substation), and a Permission Area (who is responsible for it)
+- Operators Acknowledge alarms to confirm they've seen them
+- Three list types: Alarm Lists (active alarms), System Activity Logs (a permanent time-ordered history), SCADA Exception Lists (currently-abnormal items)
+
+DISPLAYS — how operators see the system
+Built with the FG Display Builder, an offline Windows tool.
+- Source files: ESET (element definitions) and DSET (display definitions), written in DDL (Display Definition Language)
+- Compiling produces a binary *.fgdisplay file that the real-time system actually shows
+- Two layer types:
+  - Simple layers — fixed layout, good for one-line diagrams of a substation
+  - Tabular layers — layout driven by live data, good for lists/tables (built from "picgroups")
+- A Picture is the basic building block — primitives (shapes/text) plus elements, linked to a database record
+- CAMs (Conditional Attribute Modifiers) change how something looks based on data (e.g. a breaker turns red when closed)
+- Conditional Text (CT) changes displayed text based on data
+- Operators view displays through e-terrabrowser (WebFG), typically via the dedicated Display Viewer
+
+ICCP (Inter-Control Center Protocol)
+A standard protocol that lets STAMS control centres exchange real-time data with other, unrelated control centres (e.g. neighboring utilities or the regional grid operator) — like a shared language between different companies' control rooms, so they don't need identical software.
+
+DBB (Database Builder)
+An Excel-based tool used to bulk-populate the SCADA/Network/Generation/DTS databases quickly and consistently.
+- Uses "typical bays" — reusable templates for common substation bay layouts, so engineers don't re-enter the same structure every time
+- Workflow: fill in Excel sheets → export to ASCII import files → import into the HDB (Habitat database) → validate with VERIFY
+- The 4 major databases it builds: SCADAMOM (measurements), NETMOM (network/electrical), GENMOM (generation), DTSMOM (training simulator)
+
+DATA REPLICA / WEB SERVER
+A read-only system that lets external users (outside the control room) view the same SCADA displays, alarms, trends, and tags — without being able to issue any controls. Deployed at Main and Backup STAMC for cyber-security reasons.
+
+TONE REMINDER
+You're teaching, not lecturing. Be warm, concrete, and check that the explanation would make sense to someone brand new to power-system control rooms. If the user's question is vague, answer the most likely interpretation and briefly note the assumption rather than only asking a clarifying question.`;
+
+const TOPICS = [
+  { label: "SCADA, in simple terms", q: "Explain what SCADA is in the STAMS project, in the simplest way possible, like I know nothing about it." },
+  { label: "Control centres set-up", q: "Explain the STAMS control centres — Main STAMC, Backup STAMC, and the North, South, Central and West Zone RTAMCs — and how they relate to each other." },
+  { label: "e-terrahabitat basics", q: "What is e-terrahabitat and how does it work as the foundation of the STAMS system? Include a simple diagram." },
+  { label: "Display Builder", q: "Explain how the FG Display Builder works and how a display gets from a blank screen to something an operator sees, simply." },
+  { label: "Alarms & events", q: "Explain how the Alarm system works in STAMS — categories, locations, permission areas, and acknowledgement — simply." },
+  { label: "ICCP, simply explained", q: "Explain what ICCP is and why STAMS control centres use it, in the simplest way possible." },
+  { label: "Database Builder (DBB)", q: "Explain what DBB (Database Builder) is and how it is used to populate the SCADA database, simply." },
+  { label: "Data quality flags", q: "Explain the SCADA data quality flags — source, reliability, and composite flags — simply, with everyday examples." }
+];
+
+// Build sidebar (desktop) + topic strip (mobile)
+const sidebarTopicsEl = document.getElementById('sidebarTopics');
+const topicStripEl = document.getElementById('topicStrip');
+TOPICS.forEach(t => {
+  const b1 = document.createElement('button');
+  b1.className = 'topic-btn';
+  b1.textContent = t.label;
+  b1.addEventListener('click', () => { inputEl.value = t.q; sendMessage(); });
+  sidebarTopicsEl.appendChild(b1);
+
+  const b2 = document.createElement('button');
+  b2.className = 'topic-chip';
+  b2.textContent = t.label;
+  b2.addEventListener('click', () => { inputEl.value = t.q; sendMessage(); });
+  topicStripEl.appendChild(b2);
+});
+
+let history = [];
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const clearBtn = document.getElementById('clearBtn');
+
+function scrollToBottom(){
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function renderMarkdown(text){
+  return marked.parse(text, { breaks: true });
+}
+
+let mermaidCounter = 0;
+async function renderMermaidBlocks(container){
+  const blocks = container.querySelectorAll('pre code.language-mermaid');
+  for(const block of blocks){
+    const id = 'mmd-' + (mermaidCounter++);
+    const src = block.textContent;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'mermaid';
+    try{
+      const { svg } = await mermaid.render(id, src);
+      wrapper.innerHTML = svg;
+      block.closest('pre').replaceWith(wrapper);
+      scrollToBottom();
+    }catch(e){
+      // leave original code block if diagram fails to parse
+    }
+  }
+}
+
+function addMessage(role, text){
+  const row = document.createElement('div');
+  row.className = 'msg-row ' + role;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  if(role === 'assistant'){
+    const label = document.createElement('span');
+    label.className = 'assistant-label';
+    label.textContent = 'STAMS AI';
+    bubble.appendChild(label);
+  }
+  const body = document.createElement('div');
+  body.innerHTML = renderMarkdown(text);
+  bubble.appendChild(body);
+  row.appendChild(bubble);
+  messagesEl.appendChild(row);
+  scrollToBottom();
+  renderMermaidBlocks(body);
+  return body;
+}
+
+function addTypingIndicator(){
+  const row = document.createElement('div');
+  row.className = 'msg-row assistant';
+  row.id = 'typingRow';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = '<span class="assistant-label">STAMS AI</span><div class="typing"><span></span><span></span><span></span></div>';
+  row.appendChild(bubble);
+  messagesEl.appendChild(row);
+  scrollToBottom();
+}
+function removeTypingIndicator(){
+  const el = document.getElementById('typingRow');
+  if(el) el.remove();
+}
+
+async function sendMessage(){
+  const text = inputEl.value.trim();
+  if(!text) return;
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  inputEl.blur();
+  addMessage('user', text);
+  history.push({ role:'user', content: text });
+  sendBtn.disabled = true;
+  addTypingIndicator();
+
+  try{
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: SYSTEM_PROMPT,
+        messages: history,
+        tools: [{ type: "web_search_20250305", name: "web_search" }]
+      })
+    });
+
+    const data = await response.json();
+    removeTypingIndicator();
+
+    const textBlocks = (data.content || []).filter(b => b.type === 'text').map(b => b.text);
+    const answer = textBlocks.join('\n\n').trim();
+
+    if(answer){
+      addMessage('assistant', answer);
+      history.push({ role:'assistant', content: answer });
+    } else {
+      addMessage('assistant', "I couldn't quite form an answer that time. Could you try rephrasing the question?");
+    }
+  } catch(err){
+    removeTypingIndicator();
+    addMessage('assistant', "Something went wrong reaching the assistant. Please check your connection and try again.");
+    console.error('STAMS AI Assistant error:', err);
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+sendBtn.addEventListener('click', sendMessage);
+inputEl.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+});
+inputEl.addEventListener('input', () => {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+});
+
+clearBtn.addEventListener('click', () => {
+  history = [];
+  messagesEl.innerHTML = '';
+  addMessage('assistant', "Chat cleared. What would you like to learn about the STAMS project?");
+});
+
+// Welcome message
+addMessage('assistant', "Welcome. I'm the **STAMS AI Assistant** — ask me anything about the STAMS SCADA/EMS project and I'll explain it in the simplest way I can, using the training material as my base.\n\nNot sure where to start? Try one of the topics above, or ask something like *\"What does a Front End Processor actually do?\"*");
+</script>
+
+</body>
+</html>
