@@ -3,7 +3,7 @@
 // API key on the server. Set GEMINI_API_KEY in your Vercel project's
 // Environment Variables (get a key at https://aistudio.google.com/apikey).
 
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-3.6-flash';
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
